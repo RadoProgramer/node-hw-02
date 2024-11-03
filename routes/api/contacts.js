@@ -13,17 +13,26 @@ const router = express.Router();
 const contactSchema = Joi.object({
 	name: Joi.string().required(),
 	email: Joi.string().email().required(),
-	phone: Joi.string().required(),
+	phone: Joi.string()
+		.pattern(/^[0-9]{3}-[0-9]{3}-[0-9]{4}$/)
+		.required(),
 });
 
 const updateSchema = Joi.object({
 	name: Joi.string(),
 	email: Joi.string().email(),
-	phone: Joi.string(),
+	phone: Joi.string().pattern(/^[0-9]{3}-[0-9]{3}-[0-9]{4}$/),
 }).or("name", "email", "phone");
 
 const sendResponse = (res, statusCode, message) => {
 	res.status(statusCode).json({ message });
+};
+
+const contactExists = async (email, phone) => {
+	const contacts = await listContacts();
+	return contacts.some(
+		(contact) => contact.email === email || contact.phone === phone
+	);
 };
 
 router.get("/", async (req, res, next) => {
@@ -55,7 +64,17 @@ router.post("/", async (req, res, next) => {
 			return sendResponse(
 				res,
 				400,
-				`Missing required ${error.details[0].path[0]} - field`
+				`Invalid field: ${error.details[0].message}`
+			);
+		}
+
+		const { email, phone } = req.body;
+		const exists = await contactExists(email, phone);
+		if (exists) {
+			return sendResponse(
+				res,
+				409,
+				"Contact with this email or phone number already exists"
 			);
 		}
 
@@ -83,7 +102,23 @@ router.put("/:contactId", async (req, res, next) => {
 	try {
 		const { error } = updateSchema.validate(req.body);
 		if (error) {
-			return sendResponse(res, 400, "Missing fields");
+			return sendResponse(
+				res,
+				400,
+				`Invalid field: ${error.details[0].message}`
+			);
+		}
+
+		const { email, phone } = req.body;
+		if (email || phone) {
+			const exists = await contactExists(email, phone);
+			if (exists) {
+				return sendResponse(
+					res,
+					409,
+					"Contact with this email or phone number already exists"
+				);
+			}
 		}
 
 		const updatedContact = await updateContact(req.params.contactId, req.body);
