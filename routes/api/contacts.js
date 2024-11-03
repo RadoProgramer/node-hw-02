@@ -22,6 +22,10 @@ const updateSchema = Joi.object({
 	phone: Joi.string(),
 }).or("name", "email", "phone");
 
+const sendResponse = (res, statusCode, message) => {
+	res.status(statusCode).json({ message });
+};
+
 router.get("/", async (req, res, next) => {
 	try {
 		const contacts = await listContacts();
@@ -37,7 +41,7 @@ router.get("/:contactId", async (req, res, next) => {
 		if (contact) {
 			res.status(200).json(contact);
 		} else {
-			res.status(404).json({ message: "Not found" });
+			sendResponse(res, 404, "Not found");
 		}
 	} catch (error) {
 		next(error);
@@ -47,12 +51,13 @@ router.get("/:contactId", async (req, res, next) => {
 router.post("/", async (req, res, next) => {
 	try {
 		const { error } = contactSchema.validate(req.body);
-		if (error)
-			return res
-				.status(400)
-				.json({
-					message: `missing required ${error.details[0].path[0]} - field`,
-				});
+		if (error) {
+			return sendResponse(
+				res,
+				400,
+				`Missing required ${error.details[0].path[0]} - field`
+			);
+		}
 
 		const newContact = await addContact(req.body);
 		res.status(201).json(newContact);
@@ -65,9 +70,9 @@ router.delete("/:contactId", async (req, res, next) => {
 	try {
 		const contact = await removeContact(req.params.contactId);
 		if (contact) {
-			res.status(200).json({ message: "contact deleted" });
+			sendResponse(res, 200, "Contact deleted");
 		} else {
-			res.status(404).json({ message: "Not found" });
+			sendResponse(res, 404, "Not found");
 		}
 	} catch (error) {
 		next(error);
@@ -77,13 +82,15 @@ router.delete("/:contactId", async (req, res, next) => {
 router.put("/:contactId", async (req, res, next) => {
 	try {
 		const { error } = updateSchema.validate(req.body);
-		if (error) return res.status(400).json({ message: "missing fields" });
+		if (error) {
+			return sendResponse(res, 400, "Missing fields");
+		}
 
 		const updatedContact = await updateContact(req.params.contactId, req.body);
 		if (updatedContact) {
 			res.status(200).json(updatedContact);
 		} else {
-			res.status(404).json({ message: "Not found" });
+			sendResponse(res, 404, "Not found");
 		}
 	} catch (error) {
 		next(error);
