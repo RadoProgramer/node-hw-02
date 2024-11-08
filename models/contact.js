@@ -15,7 +15,7 @@ const contactSchema = new mongoose.Schema({
 		type: String,
 		required: [true, "Set phone for contact"],
 		unique: true,
-		match: [/^[0-9]{09,15}$/, "Phone number must be 10-15 digits"],
+		match: [/^[0-9]{10,15}$/, "Phone number must be 10-15 digits"],
 	},
 	favorite: {
 		type: Boolean,
