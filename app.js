@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const mongoose = require("mongoose");
+const connectDB = require("./db");
 const contactsRouter = require("./routes/api/contacts");
 require("dotenv").config();
 
@@ -18,16 +18,6 @@ app.use((err, req, res, next) => {
 	res.status(500).json({ message: err.message });
 });
 
-const startServer = async () => {
-	try {
-		await mongoose.connect(process.env.DB_HOST);
-		console.log("Database connection successful");
-	} catch (error) {
-		console.error("Database connection error:", error.message);
-		process.exit(1);
-	}
-};
-
-startServer();
+connectDB();
 
 module.exports = app;
