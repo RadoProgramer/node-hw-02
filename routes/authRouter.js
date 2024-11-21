@@ -12,7 +12,7 @@ router.post("/signup", async (req, res, next) => {
 	try {
 		const existingUser = await User.findOne({ email });
 		if (existingUser) {
-			return res.status(409).json({ message: "Email in use" });
+			return res.status(409).json({ message: "This email is already registered" });
 		}
 
 		const user = new User({ email });
@@ -40,7 +40,7 @@ router.post("/login", async (req, res, next) => {
 		}
 
 		const payload = { id: user._id };
-		const token = jwt.sign(payload, process.env.SECRET, { expiresIn: "1h" });
+		const token = jwt.sign(payload, process.env.SECRET, { expiresIn: "30m" });
 		const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, {
 			expiresIn: "30d",
 		});
