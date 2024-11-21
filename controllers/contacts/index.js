@@ -23,7 +23,7 @@ const sendResponse = (res, status, message, data = null) => {
 
 const getAllContacts = async (req, res, next) => {
 	try {
-		const contacts = await fetchContacts();
+		const contacts = await fetchContacts({ owner: req.user._id });
 		sendResponse(res, 200, "Contacts retrieved successfully", contacts);
 	} catch (error) {
 		next(error);
@@ -39,7 +39,7 @@ const getContactById = async (req, res, next) => {
 
 	try {
 		const contact = await fetchContactById(contactId);
-		if (contact) {
+		if (contact && contact.owner.toString() === req.user._id.toString()) {
 			sendResponse(res, 200, "Contact retrieved successfully", contact);
 		} else {
 			sendResponse(res, 404, "Not found");
@@ -51,7 +51,10 @@ const getContactById = async (req, res, next) => {
 
 const createContact = async (req, res, next) => {
 	try {
-		const newContact = await insertContact(req.body);
+		const newContact = await insertContact({
+			...req.body,
+			owner: req.user._id,
+		});
 		sendResponse(res, 201, "Contact created successfully", newContact);
 	} catch (error) {
 		if (error.code === 11000) {
@@ -70,8 +73,9 @@ const deleteContact = async (req, res, next) => {
 	}
 
 	try {
-		const contact = await removeContact(contactId);
-		if (contact) {
+		const contact = await fetchContactById(contactId);
+		if (contact && contact.owner.toString() === req.user._id.toString()) {
+			await removeContact(contactId);
 			sendResponse(res, 200, "Contact deleted");
 		} else {
 			sendResponse(res, 404, "Not found");
@@ -89,8 +93,9 @@ const updateContactById = async (req, res, next) => {
 	}
 
 	try {
-		const updatedContact = await updateContact(contactId, req.body);
-		if (updatedContact) {
+		const contact = await fetchContactById(contactId);
+		if (contact && contact.owner.toString() === req.user._id.toString()) {
+			const updatedContact = await updateContact(contactId, req.body);
 			sendResponse(res, 200, "Contact updated successfully", updatedContact);
 		} else {
 			sendResponse(res, 404, "Not found");
@@ -117,8 +122,9 @@ const updateContactStatus = async (req, res, next) => {
 	}
 
 	try {
-		const updatedContact = await updateStatus(contactId, req.body);
-		if (updatedContact) {
+		const contact = await fetchContactById(contactId);
+		if (contact && contact.owner.toString() === req.user._id.toString()) {
+			const updatedContact = await updateStatus(contactId, req.body);
 			sendResponse(
 				res,
 				200,

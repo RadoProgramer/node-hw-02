@@ -1,15 +1,15 @@
 const Contact = require("../../models/contact");
 
-const fetchContacts = async () => {
-	return await Contact.find();
+const fetchContacts = async (filter) => {
+	return await Contact.find(filter).populate("owner", "email");
 };
 
 const fetchContactById = async (contactId) => {
-	return await Contact.findById(contactId);
+	return await Contact.findById(contactId).populate("owner", "email");
 };
 
-const insertContact = async ({ name, email, phone }) => {
-	const newContact = new Contact({ name, email, phone });
+const insertContact = async ({ name, email, phone, owner }) => {
+	const newContact = new Contact({ name, email, phone, owner });
 	return await newContact.save();
 };
 
