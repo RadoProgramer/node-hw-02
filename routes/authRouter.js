@@ -3,7 +3,6 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/user");
 const authMiddleware = require("../middleware/authMiddleware");
 
-
 const router = express.Router();
 
 router.post("/signup", async (req, res, next) => {
@@ -12,7 +11,9 @@ router.post("/signup", async (req, res, next) => {
 	try {
 		const existingUser = await User.findOne({ email });
 		if (existingUser) {
-			return res.status(409).json({ message: "This email is already registered" });
+			return res
+				.status(409)
+				.json({ message: "This email is already registered" });
 		}
 
 		const user = new User({ email });
@@ -100,7 +101,7 @@ router.get("/logout", authMiddleware, async (req, res, next) => {
 	try {
 		req.user.token = null;
 		await req.user.save();
-		res.status(204).end();
+		res.status(200).json({ message: "Logout successful" });
 	} catch (error) {
 		next(error);
 	}
