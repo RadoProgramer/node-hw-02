@@ -1,4 +1,5 @@
 const express = require("express");
+const authMiddleware = require("../../middleware/authMiddleware");
 const {
 	getAllContacts,
 	getContactById,
@@ -9,6 +10,8 @@ const {
 } = require("../../controllers/contacts");
 
 const router = express.Router();
+
+router.use(authMiddleware);
 
 router.get("/", getAllContacts);
 router.get("/:contactId", getContactById);
