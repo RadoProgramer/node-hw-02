@@ -1,3 +1,4 @@
+const Contact = require("../../models/contact");
 const {
 	fetchContacts,
 	fetchContactById,
@@ -22,9 +23,24 @@ const sendResponse = (res, status, message, data = null) => {
 };
 
 const getAllContacts = async (req, res, next) => {
+	const { page = 1, limit = 20, favorite } = req.query;
+	const skip = (page - 1) * limit;
+
 	try {
-		const contacts = await fetchContacts({ owner: req.user._id });
-		sendResponse(res, 200, "Contacts retrieved successfully", contacts);
+		const filter = { owner: req.user._id };
+		if (favorite !== undefined) {
+			filter.favorite = favorite === "true";
+		}
+
+		const contacts = await fetchContacts(filter, skip, limit);
+		const total = await Contact.countDocuments(filter);
+
+		sendResponse(res, 200, "Contacts retrieved successfully", {
+			contacts,
+			page: Number(page),
+			limit: Number(limit),
+			total,
+		});
 	} catch (error) {
 		next(error);
 	}

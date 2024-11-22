@@ -112,4 +112,35 @@ router.get("/current", authMiddleware, (req, res) => {
 	res.json({ email, subscription });
 });
 
+router.patch("/subscription", authMiddleware, async (req, res, next) => {
+	const { subscription } = req.body;
+	const allowedSubscriptions = ["starter", "pro", "business"];
+
+	if (!allowedSubscriptions.includes(subscription)) {
+		return res.status(400).json({
+			message: `Invalid subscription. Allowed values are: ${allowedSubscriptions.join(
+				", "
+			)}`,
+		});
+	}
+
+	try {
+		const updatedUser = await User.findByIdAndUpdate(
+			req.user._id,
+			{ subscription },
+			{ new: true }
+		);
+
+		res.json({
+			message: "Subscription updated successfully",
+			user: {
+				email: updatedUser.email,
+				subscription: updatedUser.subscription,
+			},
+		});
+	} catch (error) {
+		next(error);
+	}
+});
+
 module.exports = router;
