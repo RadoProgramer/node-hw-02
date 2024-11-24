@@ -4,8 +4,7 @@ const User = require("../models/user");
 const authMiddleware = require("../middleware/authMiddleware");
 const uploadAvatar = require("../middleware/avatarUpload");
 
-const Jimp = require("jimp").default; 
-
+const Jimp = require("jimp").default;
 
 const path = require("path");
 const fs = require("fs/promises");
@@ -16,10 +15,9 @@ const router = express.Router();
 
 router.patch("/avatars", (req, res, next) => {
 	console.log("Request received at /avatars");
-	next(); // Przekazuje żądanie dalej
+	next();
 });
 
-// Rejestracja użytkownika
 router.post("/signup", async (req, res, next) => {
 	const { email, password } = req.body;
 
@@ -31,7 +29,7 @@ router.post("/signup", async (req, res, next) => {
 				.json({ message: "This email is already registered" });
 		}
 
-		const avatarURL = gravatar.url(email, { s: "250", d: "retro" }, true); // Generowanie domyślnego awatara
+		const avatarURL = gravatar.url(email, { s: "250", d: "retro" }, true);
 		const user = new User({ email, password, avatarURL });
 		user.password = await bcrypt.hash(password, 10);
 		await user.save();
@@ -48,7 +46,6 @@ router.post("/signup", async (req, res, next) => {
 	}
 });
 
-// Logowanie użytkownika
 router.post("/login", async (req, res, next) => {
 	const { email, password } = req.body;
 
@@ -80,7 +77,6 @@ router.post("/login", async (req, res, next) => {
 	}
 });
 
-// Odświeżanie tokenu
 router.post("/refresh-token", (req, res) => {
 	const refreshToken = req.headers.authorization?.split(" ")[1];
 
@@ -116,7 +112,6 @@ router.post("/refresh-token", (req, res) => {
 	);
 });
 
-// Wylogowanie użytkownika
 router.get("/logout", authMiddleware, async (req, res, next) => {
 	try {
 		req.user.token = null;
@@ -127,13 +122,11 @@ router.get("/logout", authMiddleware, async (req, res, next) => {
 	}
 });
 
-// Pobranie danych aktualnego użytkownika
 router.get("/current", authMiddleware, (req, res) => {
 	const { email, subscription, avatarURL } = req.user;
 	res.json({ email, subscription, avatarURL });
 });
 
-// Aktualizacja subskrypcji użytkownika
 router.patch("/subscription", authMiddleware, async (req, res, next) => {
 	const { subscription } = req.body;
 	const allowedSubscriptions = ["starter", "pro", "business"];
@@ -180,12 +173,9 @@ router.patch(
 
 			console.log("File path received for processing:", file.path);
 
-			// Użycie new Jimp zamiast Jimp.read
-			const avatar = await new Jimp(file.path);
-
+			const avatar = new Jimp(file.path);
 			console.log("Image loaded successfully");
 
-			// Zmiana rozmiaru obrazu
 			await avatar.resize(250, 250).writeAsync(file.path);
 			console.log("Image resized successfully");
 
@@ -193,11 +183,9 @@ router.patch(
 			const uniqueName = `${req.user._id}-${Date.now()}-${file.originalname}`;
 			const finalPath = path.join(avatarsDir, uniqueName);
 
-			// Przeniesienie pliku
 			await fs.rename(file.path, finalPath);
 			console.log("File moved to:", finalPath);
 
-			// Aktualizacja URL awatara w bazie danych
 			req.user.avatarURL = `/avatars/${uniqueName}`;
 			await req.user.save();
 
