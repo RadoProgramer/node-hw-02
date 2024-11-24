@@ -3,14 +3,11 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/user");
 const authMiddleware = require("../middleware/authMiddleware");
 const uploadAvatar = require("../middleware/avatarUpload");
-
-const Jimp = require("jimp").default;
-
+const Jimp = require("jimp");
 const path = require("path");
 const fs = require("fs/promises");
 const gravatar = require("gravatar");
 const bcrypt = require("bcryptjs");
-
 const router = express.Router();
 
 router.patch("/avatars", (req, res, next) => {
@@ -173,7 +170,7 @@ router.patch(
 
 			console.log("File path received for processing:", file.path);
 
-			const avatar = new Jimp(file.path);
+			const avatar = await Jimp.read(file.path);
 			console.log("Image loaded successfully");
 
 			await avatar.resize(250, 250).writeAsync(file.path);
