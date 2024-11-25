@@ -2,8 +2,18 @@ const express = require("express");
 const jwt = require("jsonwebtoken");
 const User = require("../models/user");
 const authMiddleware = require("../middleware/authMiddleware");
-
+const uploadAvatar = require("../middleware/avatarUpload");
+const Jimp = require("jimp");
+const path = require("path");
+const fs = require("fs/promises");
+const gravatar = require("gravatar");
+const bcrypt = require("bcryptjs");
 const router = express.Router();
+
+router.patch("/avatars", (req, res, next) => {
+	console.log("Request received at /avatars");
+	next();
+});
 
 router.post("/signup", async (req, res, next) => {
 	const { email, password } = req.body;
@@ -16,14 +26,16 @@ router.post("/signup", async (req, res, next) => {
 				.json({ message: "This email is already registered" });
 		}
 
-		const user = new User({ email });
-		await user.setPassword(password);
+		const avatarURL = gravatar.url(email, { s: "250", d: "retro" }, true);
+		const user = new User({ email, password, avatarURL });
+		user.password = await bcrypt.hash(password, 10);
 		await user.save();
 
 		res.status(201).json({
 			user: {
 				email: user.email,
 				subscription: user.subscription,
+				avatarURL: user.avatarURL,
 			},
 		});
 	} catch (error) {
@@ -108,8 +120,8 @@ router.get("/logout", authMiddleware, async (req, res, next) => {
 });
 
 router.get("/current", authMiddleware, (req, res) => {
-	const { email, subscription } = req.user;
-	res.json({ email, subscription });
+	const { email, subscription, avatarURL } = req.user;
+	res.json({ email, subscription, avatarURL });
 });
 
 router.patch("/subscription", authMiddleware, async (req, res, next) => {
@@ -142,5 +154,44 @@ router.patch("/subscription", authMiddleware, async (req, res, next) => {
 		next(error);
 	}
 });
+
+router.patch(
+	"/avatars",
+	authMiddleware,
+	uploadAvatar,
+	async (req, res, next) => {
+		try {
+			const { file } = req;
+
+			if (!file) {
+				console.log("No file received");
+				return res.status(400).json({ message: "File upload failed" });
+			}
+
+			console.log("File path received for processing:", file.path);
+
+			const avatar = await Jimp.read(file.path);
+			console.log("Image loaded successfully");
+
+			await avatar.resize(250, 250).writeAsync(file.path);
+			console.log("Image resized successfully");
+
+			const avatarsDir = path.join(process.cwd(), "public/avatars");
+			const uniqueName = `${req.user._id}-${Date.now()}-${file.originalname}`;
+			const finalPath = path.join(avatarsDir, uniqueName);
+
+			await fs.rename(file.path, finalPath);
+			console.log("File moved to:", finalPath);
+
+			req.user.avatarURL = `/avatars/${uniqueName}`;
+			await req.user.save();
+
+			res.status(200).json({ avatarURL: req.user.avatarURL });
+		} catch (error) {
+			console.error("Error during avatar upload:", error);
+			next(error);
+		}
+	}
+);
 
 module.exports = router;
